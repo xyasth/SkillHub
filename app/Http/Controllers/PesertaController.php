@@ -7,63 +7,68 @@ use App\Models\Pendaftaran;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
+/**
+ * Class PesertaController
+ * * Mengelola aktivitas peserta: Lihat katalog, Daftar kelas, Batal kelas.
+ * * @package App\Http\Controllers
+ */
 class PesertaController extends Controller
 {
-    // Dashboard Peserta: Menampilkan kelas yang diikuti (Flow 2.4)
+    /**
+     * Dashboard Peserta: Menampilkan kelas yang sedang diikuti.
+     * * @return \Illuminate\View\View
+     */
     public function index()
     {
-        // Ambil kelas dimana user ini terdaftar dan statusnya approved
         $kelasDiikuti = Pendaftaran::with(['kelas.instruktur'])
-            ->where('user_id', Auth::id())
-            ->where('status', 'approved')
-            ->get();
+                        ->where('user_id', Auth::id())
+                        ->where('status', 'approved')
+                        ->get();
 
         return view('peserta.dashboard', compact('kelasDiikuti'));
     }
 
-    // List Semua Kelas (Flow 2.1)
+    /**
+     * Menampilkan katalog semua kelas yang berstatus 'aktif'.
+     * * @return \Illuminate\View\View
+     */
     public function listKelas()
     {
-        // Peserta hanya melihat kelas yang AKTIF
         $semuaKelas = Kelas::with('instruktur')
-            ->where('status', 'aktif') // Filter Status
-            ->latest()
-            ->get();
-
+                        ->where('status', 'aktif')
+                        ->latest()
+                        ->get();
         return view('peserta.kelas.index', compact('semuaKelas'));
     }
 
-    // Detail Kelas (Flow 2.2)
+    /**
+     * Menampilkan detail satu kelas.
+     * * @param int $id ID Kelas
+     * @return \Illuminate\View\View
+     */
     public function showKelas($id)
     {
-        $kelas = Kelas::with(['instruktur', 'pendaftarans'])->findOrFail($id);
+        $kelas = Kelas::with(['instruktur'])->findOrFail($id);
 
-        // Cek status pendaftaran user saat ini (untuk tombol: Daftar / Menunggu / Terdaftar)
         $statusPendaftaran = Pendaftaran::where('user_id', Auth::id())
-            ->where('kelas_id', $id)
-            ->first();
+                            ->where('kelas_id', $id)
+                            ->first();
 
         return view('peserta.kelas.show', compact('kelas', 'statusPendaftaran'));
     }
-    public function batalDaftar($id)
-    {
-        // Cari pendaftaran milik user yang sedang login
-        $pendaftaran = Pendaftaran::where('user_id', Auth::id())
-            ->where('kelas_id', $id)
-            ->firstOrFail();
 
-        $pendaftaran->delete(); // Hapus data dari database
-
-        return back()->with('success', 'Anda berhasil membatalkan pendaftaran kelas ini.');
-    }
-
-    // Proses Daftar Kelas (Flow 2.3)
+    /**
+     * Proses mendaftar ke kelas baru.
+     * * @param Request $request
+     * @param int $kelas_id
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function daftar(Request $request, $kelas_id)
     {
-        // Cek apakah sudah pernah daftar
+        // Cek duplikasi pendaftaran
         $cek = Pendaftaran::where('user_id', Auth::id())
-            ->where('kelas_id', $kelas_id)
-            ->exists();
+                          ->where('kelas_id', $kelas_id)
+                          ->exists();
 
         if ($cek) {
             return back()->with('error', 'Anda sudah mendaftar di kelas ini.');
@@ -72,10 +77,26 @@ class PesertaController extends Controller
         Pendaftaran::create([
             'user_id' => Auth::id(),
             'kelas_id' => $kelas_id,
-            'status' => 'pending', // Default status sesuai spesifikasi
+            'status' => 'pending',
             'tanggal_daftar' => now()
         ]);
 
-        return redirect()->route('peserta.dashboard')->with('success', 'Pendaftaran berhasil dikirim. Menunggu persetujuan Instruktur.');
+        return redirect()->route('peserta.dashboard')->with('success', 'Pendaftaran berhasil dikirim.');
+    }
+
+    /**
+     * Membatalkan pendaftaran kelas.
+     * * @param int $id ID Kelas
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function batalDaftar($id)
+    {
+        $pendaftaran = Pendaftaran::where('user_id', Auth::id())
+                                  ->where('kelas_id', $id)
+                                  ->firstOrFail();
+
+        $pendaftaran->delete();
+
+        return back()->with('success', 'Pendaftaran dibatalkan.');
     }
 }

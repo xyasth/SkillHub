@@ -28,7 +28,7 @@
 
     <div class="bg-white shadow rounded-lg overflow-hidden my-2">
         <div class="px-6 py-4 border-b">
-            <h3 class="font-bold">Log Pendaftaran Terbaru (Read Only)</h3>
+            <h3 class="font-bold">Log Pendaftaran Terbaru</h3>
         </div>
         <table class="min-w-full bg-white">
             <thead class="bg-gray-100">

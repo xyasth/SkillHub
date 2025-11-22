@@ -2,52 +2,64 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
+/**
+ * Class User
+ * * Merepresentasikan entitas pengguna dalam sistem (Admin, Instruktur, Peserta).
+ * * @package App\Models
+ */
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
     /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
+     * Atribut yang dapat diisi secara massal (Mass Assignment).
+     * * @var array<int, string>
      */
-    protected $fillable = ['username', 'email', 'password', 'role'];
+    protected $fillable = [
+        'username',
+        'email',
+        'password',
+        'role', // admin, instruktur, peserta
+    ];
 
     /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
+     * Atribut yang harus disembunyikan untuk array output.
+     * * @var array<int, string>
      */
     protected $hidden = [
         'password',
         'remember_token',
     ];
+
+    /**
+     * Relasi: User (sebagai Instruktur) memiliki banyak kelas yang diajar.
+     * * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
     public function kelasAjar()
     {
         return $this->hasMany(Kelas::class, 'instructor_id');
     }
 
-    // Relasi: User (Peserta) punya banyak pendaftaran
+    /**
+     * Relasi: User (sebagai Peserta) memiliki banyak riwayat pendaftaran kelas.
+     * * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
     public function pendaftarans()
     {
         return $this->hasMany(Pendaftaran::class, 'user_id');
     }
+
     /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
+     * Helper untuk memeriksa peran pengguna.
+     * * @param string $role Role yang dicek
+     * @return bool
      */
-    protected function casts(): array
+    public function hasRole($role)
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        return $this->role === $role;
     }
 }
