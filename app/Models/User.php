@@ -17,11 +17,7 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
-    ];
+    protected $fillable = ['username', 'email', 'password', 'role'];
 
     /**
      * The attributes that should be hidden for serialization.
@@ -32,7 +28,16 @@ class User extends Authenticatable
         'password',
         'remember_token',
     ];
+    public function kelasAjar()
+    {
+        return $this->hasMany(Kelas::class, 'instructor_id');
+    }
 
+    // Relasi: User (Peserta) punya banyak pendaftaran
+    public function pendaftarans()
+    {
+        return $this->hasMany(Pendaftaran::class, 'user_id');
+    }
     /**
      * Get the attributes that should be cast.
      *
