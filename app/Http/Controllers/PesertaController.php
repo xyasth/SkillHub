@@ -9,28 +9,35 @@ use Illuminate\Support\Facades\Auth;
 
 /**
  * Class PesertaController
- * * Mengelola aktivitas peserta: Lihat katalog, Daftar kelas, Batal kelas.
- * * @package App\Http\Controllers
+ * Mengelola aktivitas peserta: Lihat katalog, Daftar kelas, Batal kelas.
  */
 class PesertaController extends Controller
 {
     /**
-     * Dashboard Peserta: Menampilkan kelas yang sedang diikuti.
-     * * @return \Illuminate\View\View
+     * Dashboard Peserta: Menampilkan kelas yang sedang diikuti (Approved)
+     * dan kelas yang sedang menunggu konfirmasi (Pending).
      */
     public function index()
     {
+        $userId = Auth::id();
+
+        // 1. Ambil kelas yang SUDAH DISETUJUI (Approved)
         $kelasDiikuti = Pendaftaran::with(['kelas.instruktur'])
-                        ->where('user_id', Auth::id())
+                        ->where('user_id', $userId)
                         ->where('status', 'approved')
                         ->get();
 
-        return view('peserta.dashboard', compact('kelasDiikuti'));
+        // 2. Ambil kelas yang MASIH PENDING (Menunggu Konfirmasi)
+        $kelasPending = Pendaftaran::with(['kelas.instruktur'])
+                        ->where('user_id', $userId)
+                        ->where('status', 'pending')
+                        ->get();
+
+        return view('peserta.dashboard', compact('kelasDiikuti', 'kelasPending'));
     }
 
     /**
      * Menampilkan katalog semua kelas yang berstatus 'aktif'.
-     * * @return \Illuminate\View\View
      */
     public function listKelas()
     {
@@ -43,8 +50,6 @@ class PesertaController extends Controller
 
     /**
      * Menampilkan detail satu kelas.
-     * * @param int $id ID Kelas
-     * @return \Illuminate\View\View
      */
     public function showKelas($id)
     {
@@ -59,9 +64,6 @@ class PesertaController extends Controller
 
     /**
      * Proses mendaftar ke kelas baru.
-     * * @param Request $request
-     * @param int $kelas_id
-     * @return \Illuminate\Http\RedirectResponse
      */
     public function daftar(Request $request, $kelas_id)
     {
@@ -81,22 +83,22 @@ class PesertaController extends Controller
             'tanggal_daftar' => now()
         ]);
 
-        return redirect()->route('peserta.dashboard')->with('success', 'Pendaftaran berhasil dikirim.');
+        return redirect()->route('peserta.dashboard')->with('success', 'Pendaftaran berhasil dikirim. Tunggu persetujuan instruktur.');
     }
 
     /**
-     * Membatalkan pendaftaran kelas.
-     * * @param int $id ID Kelas
-     * @return \Illuminate\Http\RedirectResponse
+     * Membatalkan pendaftaran kelas (Unenroll).
+     * Hanya bisa dilakukan jika status masih pending atau peserta ingin keluar.
      */
     public function batalDaftar($id)
     {
+        // Cari data pendaftaran milik user ini untuk kelas yang dimaksud
         $pendaftaran = Pendaftaran::where('user_id', Auth::id())
-                                  ->where('kelas_id', $id)
+                                  ->where('kelas_id', $id) // $id di sini adalah kelas_id (sesuai route)
                                   ->firstOrFail();
 
         $pendaftaran->delete();
 
-        return back()->with('success', 'Pendaftaran dibatalkan.');
+        return back()->with('success', 'Pendaftaran berhasil dibatalkan.');
     }
 }
